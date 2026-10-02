@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AirMic P2P Audio Relay</title>
+  <title>AirMic P2P Audio Relay & Transcriber</title>
+  
   <!-- PeerJS for WebRTC Direct Streaming -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <!-- QRCode.js for Instant Pairing -->
@@ -17,7 +18,6 @@
       --accent: #38bdf8;
       --accent-hover: #0284c7;
       --danger: #ef4444;
-      --danger-active: #dc2626;
       --success: #22c55e;
       --text: #f8fafc;
       --text-muted: #94a3b8;
@@ -47,7 +47,7 @@
       border-radius: 20px;
       padding: 28px;
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
       text-align: center;
     }
@@ -67,19 +67,19 @@
       font-size: 0.75rem;
       font-weight: 600;
       margin-top: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
     .badge-disconnected { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
     .badge-connected { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
     .badge-waiting { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
 
-    /* Laptop Styling */
+    /* Laptop QR Wrapper */
     #qr-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 16px 0;
-      padding: 16px;
+      margin: 14px 0;
+      padding: 14px;
       background: #0f172a;
       border-radius: 14px;
       border: 1px dashed var(--border);
@@ -92,7 +92,7 @@
     }
 
     .url-input {
-      margin-top: 12px;
+      margin-top: 10px;
       width: 100%;
       padding: 8px 12px;
       font-size: 0.75rem;
@@ -103,7 +103,74 @@
       text-align: center;
     }
 
-    /* Phone Styling */
+    /* Waveform Canvas */
+    canvas#visualizer {
+      width: 100%;
+      height: 60px;
+      background: #0b1120;
+      border-radius: 8px;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+    }
+
+    /* Transcription Section */
+    .stt-card {
+      margin-top: 18px;
+      padding: 16px;
+      background: #0b1120;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .stt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .stt-status {
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .transcript-box {
+      width: 100%;
+      height: 100px;
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      resize: vertical;
+      outline: none;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: #1e293b;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .action-btn:hover { background: #334155; }
+
+    /* Phone Controls */
     .mic-button-container {
       display: flex;
       justify-content: center;
@@ -130,14 +197,8 @@
       box-shadow: 0 0 24px rgba(239, 68, 68, 0.4);
       -webkit-tap-highlight-color: transparent;
     }
-    .record-btn:active {
-      transform: scale(0.95);
-    }
-    .record-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
+    .record-btn:active { transform: scale(0.95); }
+    .record-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
 
     .recording-pulse {
       animation: pulse-ring 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
@@ -156,59 +217,49 @@
       margin-top: 8px;
     }
 
-    /* Waveform Canvas & Metrics */
-    canvas#visualizer {
-      width: 100%;
-      height: 70px;
-      background: #0b1120;
-      border-radius: 8px;
-      margin-top: 14px;
-      border: 1px solid var(--border);
-    }
-
-    .dsp-box {
-      margin-top: 14px;
-      padding: 12px;
-      background: #0b1120;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      text-align: left;
-      line-height: 1.5;
-    }
-    .dsp-highlight {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    /* Log Panel */
+    /* Logs */
     .log-box {
-      margin-top: 18px;
+      margin-top: 16px;
       padding: 10px;
       background: #060911;
       border-radius: 8px;
       border: 1px solid var(--border);
-      height: 90px;
+      height: 80px;
       overflow-y: auto;
       font-family: monospace;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       text-align: left;
       color: #64748b;
     }
     .log-entry { margin-bottom: 2px; }
   </style>
+
+  <!-- ES Module Script for Transformers.js Whisper -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    
+    // Configure Transformers.js to allow remote downloads and cache in browser
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    // Attach pipeline loader to global window scope
+    window.initWhisper = async function(onProgress) {
+      return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
+        progress_callback: onProgress
+      });
+    };
+  </script>
 </head>
 <body>
 
   <div class="card">
-    <h1 id="view-title">AirMic Relay</h1>
+    <h1 id="view-title">AirMic Transcriber</h1>
     <div id="connection-status" class="badge badge-waiting">Initializing peer connection...</div>
 
-    <!-- ==================== LAPTOP VIEW ==================== -->
+    <!-- ==================== LAPTOP RECEIVER VIEW ==================== -->
     <div id="laptop-view" style="display: none;">
       <p style="font-size: 0.85rem; color: var(--text-muted);">
-        Scan this QR code with your phone camera to pair instantly:
+        Scan this QR code with your phone camera to pair:
       </p>
 
       <div id="qr-wrapper">
@@ -216,22 +267,33 @@
         <input type="text" id="share-url" class="url-input" readonly />
       </div>
 
-      <div style="margin-top: 20px;">
-        <h3 style="font-size: 0.95rem; margin-bottom: 8px; text-align: left;">Latest Received Audio</h3>
+      <div style="margin-top: 16px;">
+        <h3 style="font-size: 0.9rem; margin-bottom: 8px; text-align: left;">Latest Audio Input</h3>
         <audio id="audio-playback" controls style="width: 100%; border-radius: 8px;"></audio>
-        
         <canvas id="visualizer"></canvas>
+      </div>
 
-        <div id="dsp-output" class="dsp-box">
-          Status: <span class="dsp-highlight">Waiting for transmission from phone...</span>
+      <!-- Live Speech-to-Text Card -->
+      <div class="stt-card">
+        <div class="stt-header">
+          <strong style="font-size: 0.85rem;">📝 AI Transcription</strong>
+          <span id="stt-status" class="stt-status">AI Ready</span>
+        </div>
+        
+        <textarea id="transcript-text" class="transcript-box" placeholder="Your transcribed text will appear here automatically when you speak into your phone..." readonly></textarea>
+        
+        <div class="btn-row">
+          <button id="btn-copy" class="action-btn">📋 Copy Text</button>
+          <button id="btn-save-txt" class="action-btn">💾 Save .TXT</button>
+          <button id="btn-save-audio" class="action-btn">🎵 Save Audio</button>
         </div>
       </div>
     </div>
 
-    <!-- ==================== PHONE VIEW ==================== -->
+    <!-- ==================== PHONE TRANSMITTER VIEW ==================== -->
     <div id="phone-view" style="display: none;">
       <p style="font-size: 0.85rem; color: var(--text-muted);">
-        Hold or tap the mic to record. Upon stopping, audio is instantly delivered to your laptop.
+        Tap Record, speak, and tap Stop. The audio will automatically transfer and transcribe on your laptop.
       </p>
 
       <div class="mic-button-container">
@@ -247,12 +309,11 @@
       <div id="record-timer" class="timer-display" style="display: none;">00:00</div>
     </div>
 
-    <!-- Event Log Box -->
+    <!-- System Event Logs -->
     <div id="event-logs" class="log-box"></div>
   </div>
 
   <script>
-    // System Parameters & Route Parsing
     const params = new URLSearchParams(window.location.search);
     const targetPeerId = params.get('pair');
     const isMobileMode = Boolean(targetPeerId);
@@ -269,25 +330,54 @@
       logContainer.scrollTop = logContainer.scrollHeight;
     }
 
-    // Initialize WebRTC Peer
     const peer = new Peer();
 
     /* ========================================================
-       LAPTOP MODE
+       LAPTOP MODE (RECEIVE, RESAMPLE, TRANSCRIBE)
        ======================================================== */
     if (!isMobileMode) {
       document.getElementById('laptop-view').style.display = 'block';
       viewTitle.textContent = "💻 Laptop Receiver";
 
+      let transcriberPipeline = null;
+      let isModelLoading = false;
+      let lastAudioBlob = null;
+
+      const sttStatus = document.getElementById('stt-status');
+      const transcriptBox = document.getElementById('transcript-text');
+
+      // Initialize Whisper AI Pipeline
+      async function loadWhisperModel() {
+        if (transcriberPipeline || isModelLoading) return;
+        isModelLoading = true;
+        sttStatus.textContent = "Loading AI Model...";
+        appendLog("Pre-loading Whisper model into browser memory...");
+
+        try {
+          transcriberPipeline = await window.initWhisper((prog) => {
+            if (prog.status === 'progress') {
+              sttStatus.textContent = `Loading AI: ${Math.round(prog.progress || 0)}%`;
+            }
+          });
+          sttStatus.textContent = "AI Ready ✅";
+          appendLog("Whisper model loaded and ready for transcription.");
+        } catch (err) {
+          sttStatus.textContent = "AI Init Error";
+          appendLog(`Whisper load error: ${err.message}`);
+        } finally {
+          isModelLoading = false;
+        }
+      }
+
+      // Pre-warm the model after peer creation
       peer.on('open', (id) => {
         statusBadge.textContent = "Waiting for Phone to Connect...";
         statusBadge.className = "badge badge-waiting";
-        appendLog(`Signal created. Peer ID: ${id}`);
+        appendLog(`Peer established ID: ${id}`);
 
         const pairUrl = `${window.location.origin}${window.location.pathname}?pair=${id}`;
         document.getElementById('share-url').value = pairUrl;
 
-        // Render QR Code
         new QRCode(document.getElementById("qrcode"), {
           text: pairUrl,
           width: 170,
@@ -296,13 +386,16 @@
           colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.M
         });
+
+        // Trigger model warm-up in background
+        loadWhisperModel();
       });
 
       peer.on('connection', (conn) => {
         conn.on('open', () => {
           statusBadge.textContent = "Phone Paired & Ready ✅";
           statusBadge.className = "badge badge-connected";
-          appendLog("Data connection established with phone.");
+          appendLog("Phone connected via WebRTC data channel.");
         });
 
         conn.on('data', async (payload) => {
@@ -310,63 +403,72 @@
             appendLog(`Received audio payload: ${(payload.buffer.byteLength / 1024).toFixed(1)} KB`);
 
             const blob = new Blob([payload.buffer], { type: payload.mimeType });
+            lastAudioBlob = blob;
             const audioSrc = URL.createObjectURL(blob);
-            
+
             const player = document.getElementById('audio-playback');
             player.src = audioSrc;
-            player.play().catch(() => appendLog("Autoplay blocked by browser. Click play on controls."));
+            player.play().catch(() => appendLog("Autoplay blocked. Tap play button."));
 
-            // Hand off to Web Audio API DSP pipeline
-            processAudioPayload(blob);
+            // Process audio and transcribe
+            handleIncomingAudio(blob);
           }
         });
 
         conn.on('close', () => {
           statusBadge.textContent = "Phone Disconnected ❌";
           statusBadge.className = "badge badge-disconnected";
-          appendLog("Phone connection closed.");
+          appendLog("Phone disconnected.");
         });
       });
 
-      // Laptop DSP & Audio Buffer Analysis
-      async function processAudioPayload(blob) {
+      // Decode audio, draw waveform, resample to 16 kHz, and feed to Whisper
+      async function handleIncomingAudio(blob) {
         try {
           const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const buffer = await blob.arrayBuffer();
-          const audioBuffer = await audioCtx.decodeAudioData(buffer);
+          const arrayBuffer = await blob.arrayBuffer();
+          const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-          const duration = audioBuffer.duration.toFixed(2);
-          const sampleRate = audioBuffer.sampleRate;
-          const channels = audioBuffer.numberOfChannels;
-          const rawData = audioBuffer.getChannelData(0);
+          // Draw visual waveform
+          drawWaveform(decodedBuffer.getChannelData(0));
 
-          // Calculate Peak Amplitude & RMS
-          let sumSquares = 0;
-          let peak = 0;
-          for (let i = 0; i < rawData.length; i++) {
-            const val = Math.abs(rawData[i]);
-            if (val > peak) peak = val;
-            sumSquares += val * val;
+          // Ensure Whisper model is ready
+          if (!transcriberPipeline) {
+            await loadWhisperModel();
           }
-          const rms = Math.sqrt(sumSquares / rawData.length).toFixed(3);
 
-          document.getElementById('dsp-output').innerHTML = `
-            <strong>Decoded Audio Specs:</strong><br/>
-            Duration: <span class="dsp-highlight">${duration}s</span> | 
-            Sample Rate: <span class="dsp-highlight">${sampleRate} Hz</span> | 
-            Channels: <span class="dsp-highlight">${channels}</span><br/>
-            Peak Amp: <span class="dsp-highlight">${peak.toFixed(2)}</span> | 
-            RMS Energy: <span class="dsp-highlight">${rms}</span><br/>
-            <span style="color: #4ade80;">Ready for custom transcription/ML pipelines.</span>
-          `;
+          sttStatus.textContent = "Transcribing...";
+          appendLog("Transcribing voice audio with Whisper...");
 
-          drawWaveform(rawData);
-          appendLog("Decoded audio into Float32Array successfully.");
+          // Resample audio to 16 kHz Mono Float32Array (Whisper requirement)
+          const targetSampleRate = 16000;
+          const offlineCtx = new OfflineAudioContext(
+            1,
+            Math.ceil(decodedBuffer.duration * targetSampleRate),
+            targetSampleRate
+          );
+          const source = offlineCtx.createBufferSource();
+          source.buffer = decodedBuffer;
+          source.connect(offlineCtx.destination);
+          source.start(0);
+          const resampledBuffer = await offlineCtx.startRendering();
+          const audioData16k = resampledBuffer.getChannelData(0);
+
+          // Run transcription inference
+          const result = await transcriberPipeline(audioData16k);
+          const text = result.text.trim();
+
+          transcriptBox.value = text;
+          sttStatus.textContent = "Transcription Complete ✅";
+          appendLog(`Transcribed: "${text}"`);
+
         } catch (err) {
-          appendLog(`DSP note: Native playback available, internal decoding skipped (${err.message})`);
+          sttStatus.textContent = "Transcription Failed";
+          appendLog(`Processing error: ${err.message}`);
         }
       }
 
+      // Draw Waveform Canvas
       function drawWaveform(data) {
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
@@ -391,8 +493,32 @@
         }
       }
 
+      // Export Buttons
+      document.getElementById('btn-copy').onclick = () => {
+        navigator.clipboard.writeText(transcriptBox.value);
+        appendLog("Transcript copied to clipboard.");
+      };
+
+      document.getElementById('btn-save-txt').onclick = () => {
+        const text = transcriptBox.value;
+        if (!text) return;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `transcript-${Date.now()}.txt`;
+        a.click();
+      };
+
+      document.getElementById('btn-save-audio').onclick = () => {
+        if (!lastAudioBlob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(lastAudioBlob);
+        a.download = `recording-${Date.now()}.webm`;
+        a.click();
+      };
+
     /* ========================================================
-       PHONE MODE
+       PHONE MODE (RECORD & STREAM)
        ======================================================== */
     } else {
       document.getElementById('phone-view').style.display = 'block';
@@ -426,7 +552,6 @@
           appendLog("Connection lost.");
         });
 
-        // Initialize MediaRecorder
         async function initAudio() {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -451,7 +576,7 @@
               const audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
               recordedChunks = [];
 
-              appendLog(`Transferring ${(audioBlob.size / 1024).toFixed(1)} KB...`);
+              appendLog(`Sending ${(audioBlob.size / 1024).toFixed(1)} KB to laptop...`);
 
               const arrayBuffer = await audioBlob.arrayBuffer();
               conn.send({
@@ -465,7 +590,6 @@
 
             recordBtn.onclick = () => {
               if (!isRecording) {
-                // START
                 recordedChunks = [];
                 mediaRecorder.start();
                 isRecording = true;
@@ -481,7 +605,6 @@
                   timerDisplay.textContent = `${m}:${s}`;
                 }, 500);
               } else {
-                // STOP
                 mediaRecorder.stop();
                 isRecording = false;
                 btnText.textContent = "Record";
@@ -501,5 +624,4 @@
     }
   </script>
 </body>
-</html>Please use "Middle board" file to print the middle connection board
-Do not use the middle board from  the "Flowhood door_3fm" file
+</html>
