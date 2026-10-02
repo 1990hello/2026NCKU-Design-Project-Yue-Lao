@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AirMic P2P Audio Relay</title>
+  <!-- PeerJS for WebRTC Direct Streaming -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- QRCode.js for Instant Pairing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #131b2e;
+      --border: #23314e;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --danger: #ef4444;
+      --danger-active: #dc2626;
+      --success: #22c55e;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+    .badge-disconnected { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-connected { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .badge-waiting { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Laptop Styling */
+    #qr-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 16px 0;
+      padding: 16px;
+      background: #0f172a;
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+    }
+
+    #qrcode {
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .url-input {
+      margin-top: 12px;
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    /* Phone Styling */
+    .mic-button-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 32px 0 20px 0;
+    }
+
+    .record-btn {
+      background: var(--danger);
+      color: white;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.4);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .record-btn:active {
+      transform: scale(0.95);
+    }
+    .record-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .recording-pulse {
+      animation: pulse-ring 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 22px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .timer-display {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--danger);
+      font-variant-numeric: tabular-nums;
+      margin-top: 8px;
+    }
+
+    /* Waveform Canvas & Metrics */
+    canvas#visualizer {
+      width: 100%;
+      height: 70px;
+      background: #0b1120;
+      border-radius: 8px;
+      margin-top: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .dsp-box {
+      margin-top: 14px;
+      padding: 12px;
+      background: #0b1120;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: left;
+      line-height: 1.5;
+    }
+    .dsp-highlight {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Log Panel */
+    .log-box {
+      margin-top: 18px;
+      padding: 10px;
+      background: #060911;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      height: 90px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.75rem;
+      text-align: left;
+      color: #64748b;
+    }
+    .log-entry { margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1 id="view-title">AirMic Relay</h1>
+    <div id="connection-status" class="badge badge-waiting">Initializing peer connection...</div>
+
+    <!-- ==================== LAPTOP VIEW ==================== -->
+    <div id="laptop-view" style="display: none;">
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Scan this QR code with your phone camera to pair instantly:
+      </p>
+
+      <div id="qr-wrapper">
+        <div id="qrcode"></div>
+        <input type="text" id="share-url" class="url-input" readonly />
+      </div>
+
+      <div style="margin-top: 20px;">
+        <h3 style="font-size: 0.95rem; margin-bottom: 8px; text-align: left;">Latest Received Audio</h3>
+        <audio id="audio-playback" controls style="width: 100%; border-radius: 8px;"></audio>
+        
+        <canvas id="visualizer"></canvas>
+
+        <div id="dsp-output" class="dsp-box">
+          Status: <span class="dsp-highlight">Waiting for transmission from phone...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PHONE VIEW ==================== -->
+    <div id="phone-view" style="display: none;">
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Hold or tap the mic to record. Upon stopping, audio is instantly delivered to your laptop.
+      </p>
+
+      <div class="mic-button-container">
+        <button id="record-trigger" class="record-btn" disabled>
+          <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+          <span id="record-btn-text">Record</span>
+        </button>
+      </div>
+
+      <div id="record-timer" class="timer-display" style="display: none;">00:00</div>
+    </div>
+
+    <!-- Event Log Box -->
+    <div id="event-logs" class="log-box"></div>
+  </div>
+
+  <script>
+    // System Parameters & Route Parsing
+    const params = new URLSearchParams(window.location.search);
+    const targetPeerId = params.get('pair');
+    const isMobileMode = Boolean(targetPeerId);
+
+    const logContainer = document.getElementById('event-logs');
+    const statusBadge = document.getElementById('connection-status');
+    const viewTitle = document.getElementById('view-title');
+
+    function appendLog(msg) {
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logContainer.appendChild(el);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // Initialize WebRTC Peer
+    const peer = new Peer();
+
+    /* ========================================================
+       LAPTOP MODE
+       ======================================================== */
+    if (!isMobileMode) {
+      document.getElementById('laptop-view').style.display = 'block';
+      viewTitle.textContent = "💻 Laptop Receiver";
+
+      peer.on('open', (id) => {
+        statusBadge.textContent = "Waiting for Phone to Connect...";
+        statusBadge.className = "badge badge-waiting";
+        appendLog(`Signal created. Peer ID: ${id}`);
+
+        const pairUrl = `${window.location.origin}${window.location.pathname}?pair=${id}`;
+        document.getElementById('share-url').value = pairUrl;
+
+        // Render QR Code
+        new QRCode(document.getElementById("qrcode"), {
+          text: pairUrl,
+          width: 170,
+          height: 170,
+          colorDark: "#090d16",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      });
+
+      peer.on('connection', (conn) => {
+        conn.on('open', () => {
+          statusBadge.textContent = "Phone Paired & Ready ✅";
+          statusBadge.className = "badge badge-connected";
+          appendLog("Data connection established with phone.");
+        });
+
+        conn.on('data', async (payload) => {
+          if (payload && payload.type === 'AUDIO_CLIP') {
+            appendLog(`Received audio payload: ${(payload.buffer.byteLength / 1024).toFixed(1)} KB`);
+
+            const blob = new Blob([payload.buffer], { type: payload.mimeType });
+            const audioSrc = URL.createObjectURL(blob);
+            
+            const player = document.getElementById('audio-playback');
+            player.src = audioSrc;
+            player.play().catch(() => appendLog("Autoplay blocked by browser. Click play on controls."));
+
+            // Hand off to Web Audio API DSP pipeline
+            processAudioPayload(blob);
+          }
+        });
+
+        conn.on('close', () => {
+          statusBadge.textContent = "Phone Disconnected ❌";
+          statusBadge.className = "badge badge-disconnected";
+          appendLog("Phone connection closed.");
+        });
+      });
+
+      // Laptop DSP & Audio Buffer Analysis
+      async function processAudioPayload(blob) {
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const buffer = await blob.arrayBuffer();
+          const audioBuffer = await audioCtx.decodeAudioData(buffer);
+
+          const duration = audioBuffer.duration.toFixed(2);
+          const sampleRate = audioBuffer.sampleRate;
+          const channels = audioBuffer.numberOfChannels;
+          const rawData = audioBuffer.getChannelData(0);
+
+          // Calculate Peak Amplitude & RMS
+          let sumSquares = 0;
+          let peak = 0;
+          for (let i = 0; i < rawData.length; i++) {
+            const val = Math.abs(rawData[i]);
+            if (val > peak) peak = val;
+            sumSquares += val * val;
+          }
+          const rms = Math.sqrt(sumSquares / rawData.length).toFixed(3);
+
+          document.getElementById('dsp-output').innerHTML = `
+            <strong>Decoded Audio Specs:</strong><br/>
+            Duration: <span class="dsp-highlight">${duration}s</span> | 
+            Sample Rate: <span class="dsp-highlight">${sampleRate} Hz</span> | 
+            Channels: <span class="dsp-highlight">${channels}</span><br/>
+            Peak Amp: <span class="dsp-highlight">${peak.toFixed(2)}</span> | 
+            RMS Energy: <span class="dsp-highlight">${rms}</span><br/>
+            <span style="color: #4ade80;">Ready for custom transcription/ML pipelines.</span>
+          `;
+
+          drawWaveform(rawData);
+          appendLog("Decoded audio into Float32Array successfully.");
+        } catch (err) {
+          appendLog(`DSP note: Native playback available, internal decoding skipped (${err.message})`);
+        }
+      }
+
+      function drawWaveform(data) {
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#38bdf8';
+
+        const step = Math.ceil(data.length / canvas.width);
+        const amp = canvas.height / 2;
+
+        for (let i = 0; i < canvas.width; i++) {
+          let min = 1.0;
+          let max = -1.0;
+          for (let j = 0; j < step; j++) {
+            const datum = data[(i * step) + j];
+            if (datum < min) min = datum;
+            if (datum > max) max = datum;
+          }
+          ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+        }
+      }
+
+    /* ========================================================
+       PHONE MODE
+       ======================================================== */
+    } else {
+      document.getElementById('phone-view').style.display = 'block';
+      viewTitle.textContent = "📱 Phone Microphone";
+
+      const recordBtn = document.getElementById('record-trigger');
+      const btnText = document.getElementById('record-btn-text');
+      const timerDisplay = document.getElementById('record-timer');
+
+      let mediaRecorder;
+      let recordedChunks = [];
+      let isRecording = false;
+      let timerInterval;
+      let startTime;
+
+      peer.on('open', () => {
+        appendLog("Connecting to laptop peer...");
+        const conn = peer.connect(targetPeerId, { reliable: true });
+
+        conn.on('open', () => {
+          statusBadge.textContent = "Connected to Laptop ✅";
+          statusBadge.className = "badge badge-connected";
+          recordBtn.disabled = false;
+          appendLog("Linked. Ready to record.");
+        });
+
+        conn.on('close', () => {
+          statusBadge.textContent = "Disconnected from Laptop ❌";
+          statusBadge.className = "badge badge-disconnected";
+          recordBtn.disabled = true;
+          appendLog("Connection lost.");
+        });
+
+        // Initialize MediaRecorder
+        async function initAudio() {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: true
+              }
+            });
+
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+              ? 'audio/webm;codecs=opus'
+              : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+
+            mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+            mediaRecorder.ondataavailable = (e) => {
+              if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+              const audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+              recordedChunks = [];
+
+              appendLog(`Transferring ${(audioBlob.size / 1024).toFixed(1)} KB...`);
+
+              const arrayBuffer = await audioBlob.arrayBuffer();
+              conn.send({
+                type: 'AUDIO_CLIP',
+                buffer: arrayBuffer,
+                mimeType: mediaRecorder.mimeType || 'audio/webm'
+              });
+
+              appendLog("Sent to laptop!");
+            };
+
+            recordBtn.onclick = () => {
+              if (!isRecording) {
+                // START
+                recordedChunks = [];
+                mediaRecorder.start();
+                isRecording = true;
+                btnText.textContent = "Stop";
+                recordBtn.classList.add('recording-pulse');
+                timerDisplay.style.display = 'block';
+                startTime = Date.now();
+
+                timerInterval = setInterval(() => {
+                  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                  const s = String(elapsed % 60).padStart(2, '0');
+                  timerDisplay.textContent = `${m}:${s}`;
+                }, 500);
+              } else {
+                // STOP
+                mediaRecorder.stop();
+                isRecording = false;
+                btnText.textContent = "Record";
+                recordBtn.classList.remove('recording-pulse');
+                clearInterval(timerInterval);
+                timerDisplay.style.display = 'none';
+              }
+            };
+
+          } catch (err) {
+            appendLog(`Microphone Error: ${err.message}. Please grant permission.`);
+          }
+        }
+
+        initAudio();
+      });
+    }
+  </script>
+</body>
+</html>Please use "Middle board" file to print the middle connection board
+Do not use the middle board from  the "Flowhood door_3fm" file
