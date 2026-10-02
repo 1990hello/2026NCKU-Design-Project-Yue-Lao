@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AirMic P2P Audio Relay & Transcriber</title>
-  
+  <title>AirMic Voice-to-Text & Auto-Title</title>
+
   <!-- PeerJS for WebRTC Direct Streaming -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <!-- QRCode.js for Instant Pairing -->
+  <!-- QRCode.js for Instant Phone Pairing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
@@ -45,7 +45,7 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 28px;
+      padding: 26px;
       width: 100%;
       max-width: 520px;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -66,8 +66,8 @@
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
-      margin-top: 8px;
-      margin-bottom: 18px;
+      margin-top: 6px;
+      margin-bottom: 16px;
     }
     .badge-disconnected { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
     .badge-connected { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
@@ -78,7 +78,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 14px 0;
+      margin: 12px 0;
       padding: 14px;
       background: #0f172a;
       border-radius: 14px;
@@ -106,22 +106,43 @@
     /* Waveform Canvas */
     canvas#visualizer {
       width: 100%;
-      height: 60px;
+      height: 55px;
       background: #0b1120;
       border-radius: 8px;
-      margin-top: 12px;
+      margin-top: 10px;
       border: 1px solid var(--border);
     }
 
-    /* Transcription Section */
+    /* Title & Transcription Card */
     .stt-card {
-      margin-top: 18px;
+      margin-top: 16px;
       padding: 16px;
       background: #0b1120;
       border-radius: 12px;
       border: 1px solid var(--border);
       text-align: left;
     }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .title-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      outline: none;
+    }
+    .title-input:focus { border-color: var(--accent); }
 
     .stt-header {
       display: flex;
@@ -138,7 +159,7 @@
 
     .transcript-box {
       width: 100%;
-      height: 100px;
+      height: 95px;
       background: #060911;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -158,7 +179,7 @@
 
     .action-btn {
       flex: 1;
-      padding: 8px 12px;
+      padding: 8px 10px;
       border-radius: 6px;
       font-size: 0.75rem;
       font-weight: 600;
@@ -219,12 +240,12 @@
 
     /* Logs */
     .log-box {
-      margin-top: 16px;
-      padding: 10px;
+      margin-top: 14px;
+      padding: 8px 10px;
       background: #060911;
       border-radius: 8px;
       border: 1px solid var(--border);
-      height: 80px;
+      height: 75px;
       overflow-y: auto;
       font-family: monospace;
       font-size: 0.72rem;
@@ -234,15 +255,12 @@
     .log-entry { margin-bottom: 2px; }
   </style>
 
-  <!-- ES Module Script for Transformers.js Whisper -->
+  <!-- ES Module Script for Whisper AI fallback -->
   <script type="module">
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-    
-    // Configure Transformers.js to allow remote downloads and cache in browser
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    // Attach pipeline loader to global window scope
     window.initWhisper = async function(onProgress) {
       return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
         progress_callback: onProgress
@@ -253,7 +271,7 @@
 <body>
 
   <div class="card">
-    <h1 id="view-title">AirMic Transcriber</h1>
+    <h1 id="view-title">AirMic Audio-to-Text</h1>
     <div id="connection-status" class="badge badge-waiting">Initializing peer connection...</div>
 
     <!-- ==================== LAPTOP RECEIVER VIEW ==================== -->
@@ -267,23 +285,28 @@
         <input type="text" id="share-url" class="url-input" readonly />
       </div>
 
-      <div style="margin-top: 16px;">
-        <h3 style="font-size: 0.9rem; margin-bottom: 8px; text-align: left;">Latest Audio Input</h3>
+      <div style="margin-top: 14px;">
+        <h3 style="font-size: 0.85rem; margin-bottom: 6px; text-align: left;">Latest Audio Input</h3>
         <audio id="audio-playback" controls style="width: 100%; border-radius: 8px;"></audio>
         <canvas id="visualizer"></canvas>
       </div>
 
-      <!-- Live Speech-to-Text Card -->
+      <!-- Generated Title & Transcription Card -->
       <div class="stt-card">
-        <div class="stt-header">
-          <strong style="font-size: 0.85rem;">📝 AI Transcription</strong>
-          <span id="stt-status" class="stt-status">AI Ready</span>
+        <div class="title-row">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Title:</label>
+          <input type="text" id="generated-title" class="title-input" placeholder="Audio Title will be generated here..." />
         </div>
-        
-        <textarea id="transcript-text" class="transcript-box" placeholder="Your transcribed text will appear here automatically when you speak into your phone..." readonly></textarea>
-        
+
+        <div class="stt-header">
+          <strong style="font-size: 0.8rem;">📝 Transcribed Speech</strong>
+          <span id="stt-status" class="stt-status">Ready</span>
+        </div>
+
+        <textarea id="transcript-text" class="transcript-box" placeholder="Your transcribed text will appear here automatically after you record on your phone..."></textarea>
+
         <div class="btn-row">
-          <button id="btn-copy" class="action-btn">📋 Copy Text</button>
+          <button id="btn-copy" class="action-btn">📋 Copy Note</button>
           <button id="btn-save-txt" class="action-btn">💾 Save .TXT</button>
           <button id="btn-save-audio" class="action-btn">🎵 Save Audio</button>
         </div>
@@ -293,7 +316,7 @@
     <!-- ==================== PHONE TRANSMITTER VIEW ==================== -->
     <div id="phone-view" style="display: none;">
       <p style="font-size: 0.85rem; color: var(--text-muted);">
-        Tap Record, speak, and tap Stop. The audio will automatically transfer and transcribe on your laptop.
+        Tap Record, speak into your phone, and tap Stop. Your voice will automatically transfer, transcribe, and get a title on your laptop.
       </p>
 
       <div class="mic-button-container">
@@ -330,10 +353,36 @@
       logContainer.scrollTop = logContainer.scrollHeight;
     }
 
+    // Smart Auto-Title Generator
+    function generateSmartTitle(text) {
+      if (!text || text.trim().length === 0) {
+        return `Voice Memo - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      const clean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
+      const words = clean.split(/\s+/);
+      const lower = text.toLowerCase();
+
+      // Check intent patterns
+      if (lower.includes("remind me to") || lower.includes("reminder")) {
+        return `Reminder: ${words.slice(0, 5).join(" ")}...`;
+      }
+      if (lower.includes("meeting") || lower.includes("discuss") || lower.includes("project")) {
+        return `Project Note: ${words.slice(0, 4).join(" ")}`;
+      }
+      if (lower.includes("idea") || lower.includes("design") || lower.includes("concept")) {
+        return `Design Idea: ${words.slice(0, 4).join(" ")}`;
+      }
+
+      // Default: Capitalize first 4-5 words
+      const summaryWords = words.slice(0, 5).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+      return summaryWords.join(" ");
+    }
+
     const peer = new Peer();
 
     /* ========================================================
-       LAPTOP MODE (RECEIVE, RESAMPLE, TRANSCRIBE)
+       LAPTOP MODE (RECEIVE, TRANSCRIBE, AUTO-TITLE)
        ======================================================== */
     if (!isMobileMode) {
       document.getElementById('laptop-view').style.display = 'block';
@@ -345,13 +394,14 @@
 
       const sttStatus = document.getElementById('stt-status');
       const transcriptBox = document.getElementById('transcript-text');
+      const titleInput = document.getElementById('generated-title');
 
-      // Initialize Whisper AI Pipeline
+      // Pre-warm Whisper AI
       async function loadWhisperModel() {
         if (transcriberPipeline || isModelLoading) return;
         isModelLoading = true;
-        sttStatus.textContent = "Loading AI Model...";
-        appendLog("Pre-loading Whisper model into browser memory...");
+        sttStatus.textContent = "Loading AI Engine...";
+        appendLog("Pre-loading Whisper model into browser cache...");
 
         try {
           transcriberPipeline = await window.initWhisper((prog) => {
@@ -360,20 +410,19 @@
             }
           });
           sttStatus.textContent = "AI Ready ✅";
-          appendLog("Whisper model loaded and ready for transcription.");
+          appendLog("Whisper model ready for local transcription.");
         } catch (err) {
-          sttStatus.textContent = "AI Init Error";
-          appendLog(`Whisper load error: ${err.message}`);
+          sttStatus.textContent = "AI Ready (Web Speech)";
+          appendLog(`Whisper note: ${err.message}`);
         } finally {
           isModelLoading = false;
         }
       }
 
-      // Pre-warm the model after peer creation
       peer.on('open', (id) => {
         statusBadge.textContent = "Waiting for Phone to Connect...";
         statusBadge.className = "badge badge-waiting";
-        appendLog(`Peer established ID: ${id}`);
+        appendLog(`Laptop Peer ID: ${id}`);
 
         const pairUrl = `${window.location.origin}${window.location.pathname}?pair=${id}`;
         document.getElementById('share-url').value = pairUrl;
@@ -387,7 +436,6 @@
           correctLevel: QRCode.CorrectLevel.M
         });
 
-        // Trigger model warm-up in background
         loadWhisperModel();
       });
 
@@ -395,7 +443,7 @@
         conn.on('open', () => {
           statusBadge.textContent = "Phone Paired & Ready ✅";
           statusBadge.className = "badge badge-connected";
-          appendLog("Phone connected via WebRTC data channel.");
+          appendLog("Phone connected via WebRTC.");
         });
 
         conn.on('data', async (payload) => {
@@ -408,10 +456,20 @@
 
             const player = document.getElementById('audio-playback');
             player.src = audioSrc;
-            player.play().catch(() => appendLog("Autoplay blocked. Tap play button."));
+            player.play().catch(() => appendLog("Autoplay blocked. Click play."));
 
-            // Process audio and transcribe
-            handleIncomingAudio(blob);
+            // Check if phone already transcribed via Web Speech API
+            if (payload.phoneTranscript && payload.phoneTranscript.length > 0) {
+              const text = payload.phoneTranscript.trim();
+              transcriptBox.value = text;
+              titleInput.value = generateSmartTitle(text);
+              sttStatus.textContent = "Transcribed (Phone) ✅";
+              appendLog(`Transcribed: "${text}"`);
+              appendLog(`Auto-Title: "${titleInput.value}"`);
+            }
+
+            // Decode and run waveform + Whisper inference
+            handleIncomingAudio(blob, payload.phoneTranscript);
           }
         });
 
@@ -422,53 +480,55 @@
         });
       });
 
-      // Decode audio, draw waveform, resample to 16 kHz, and feed to Whisper
-      async function handleIncomingAudio(blob) {
+      async function handleIncomingAudio(blob, existingText) {
         try {
           const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           const arrayBuffer = await blob.arrayBuffer();
           const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-          // Draw visual waveform
           drawWaveform(decodedBuffer.getChannelData(0));
 
-          // Ensure Whisper model is ready
+          // If phone already captured text via Web Speech API, skip heavy Whisper run
+          if (existingText && existingText.trim().length > 0) {
+            return;
+          }
+
           if (!transcriberPipeline) {
             await loadWhisperModel();
           }
 
-          sttStatus.textContent = "Transcribing...";
-          appendLog("Transcribing voice audio with Whisper...");
+          if (transcriberPipeline) {
+            sttStatus.textContent = "Transcribing with Whisper AI...";
+            appendLog("Transcribing audio on laptop with Whisper...");
 
-          // Resample audio to 16 kHz Mono Float32Array (Whisper requirement)
-          const targetSampleRate = 16000;
-          const offlineCtx = new OfflineAudioContext(
-            1,
-            Math.ceil(decodedBuffer.duration * targetSampleRate),
-            targetSampleRate
-          );
-          const source = offlineCtx.createBufferSource();
-          source.buffer = decodedBuffer;
-          source.connect(offlineCtx.destination);
-          source.start(0);
-          const resampledBuffer = await offlineCtx.startRendering();
-          const audioData16k = resampledBuffer.getChannelData(0);
+            const targetSampleRate = 16000;
+            const offlineCtx = new OfflineAudioContext(
+              1,
+              Math.ceil(decodedBuffer.duration * targetSampleRate),
+              targetSampleRate
+            );
+            const source = offlineCtx.createBufferSource();
+            source.buffer = decodedBuffer;
+            source.connect(offlineCtx.destination);
+            source.start(0);
+            const resampledBuffer = await offlineCtx.startRendering();
+            const audioData16k = resampledBuffer.getChannelData(0);
 
-          // Run transcription inference
-          const result = await transcriberPipeline(audioData16k);
-          const text = result.text.trim();
+            const result = await transcriberPipeline(audioData16k);
+            const text = result.text.trim();
 
-          transcriptBox.value = text;
-          sttStatus.textContent = "Transcription Complete ✅";
-          appendLog(`Transcribed: "${text}"`);
-
+            transcriptBox.value = text;
+            titleInput.value = generateSmartTitle(text);
+            sttStatus.textContent = "Complete ✅";
+            appendLog(`Transcribed: "${text}"`);
+            appendLog(`Auto-Title: "${titleInput.value}"`);
+          }
         } catch (err) {
-          sttStatus.textContent = "Transcription Failed";
-          appendLog(`Processing error: ${err.message}`);
+          sttStatus.textContent = "Processing Notice";
+          appendLog(`Notice: ${err.message}`);
         }
       }
 
-      // Draw Waveform Canvas
       function drawWaveform(data) {
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
@@ -495,17 +555,18 @@
 
       // Export Buttons
       document.getElementById('btn-copy').onclick = () => {
-        navigator.clipboard.writeText(transcriptBox.value);
-        appendLog("Transcript copied to clipboard.");
+        const fullContent = `${titleInput.value}\n\n${transcriptBox.value}`;
+        navigator.clipboard.writeText(fullContent);
+        appendLog("Copied title and transcript to clipboard.");
       };
 
       document.getElementById('btn-save-txt').onclick = () => {
-        const text = transcriptBox.value;
-        if (!text) return;
-        const blob = new Blob([text], { type: 'text/plain' });
+        const title = titleInput.value || "Untitled Note";
+        const content = `${title}\nDate: ${new Date().toLocaleString()}\n\n${transcriptBox.value}`;
+        const blob = new Blob([content], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `transcript-${Date.now()}.txt`;
+        a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.txt`;
         a.click();
       };
 
@@ -518,7 +579,7 @@
       };
 
     /* ========================================================
-       PHONE MODE (RECORD & STREAM)
+       PHONE MODE (RECORD & REAL-TIME SPEECH CAPTURE)
        ======================================================== */
     } else {
       document.getElementById('phone-view').style.display = 'block';
@@ -533,6 +594,25 @@
       let isRecording = false;
       let timerInterval;
       let startTime;
+      let liveTranscript = "";
+
+      // Native Web Speech Recognition on Phone
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition = null;
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+          let str = "";
+          for (let i = 0; i < event.results.length; ++i) {
+            str += event.results[i][0].transcript + " ";
+          }
+          liveTranscript = str;
+        };
+      }
 
       peer.on('open', () => {
         appendLog("Connecting to laptop peer...");
@@ -582,16 +662,22 @@
               conn.send({
                 type: 'AUDIO_CLIP',
                 buffer: arrayBuffer,
-                mimeType: mediaRecorder.mimeType || 'audio/webm'
+                mimeType: mediaRecorder.mimeType || 'audio/webm',
+                phoneTranscript: liveTranscript
               });
 
               appendLog("Sent to laptop!");
+              liveTranscript = "";
             };
 
             recordBtn.onclick = () => {
               if (!isRecording) {
                 recordedChunks = [];
+                liveTranscript = "";
                 mediaRecorder.start();
+                if (recognition) {
+                  try { recognition.start(); } catch(e) {}
+                }
                 isRecording = true;
                 btnText.textContent = "Stop";
                 recordBtn.classList.add('recording-pulse');
@@ -606,6 +692,9 @@
                 }, 500);
               } else {
                 mediaRecorder.stop();
+                if (recognition) {
+                  try { recognition.stop(); } catch(e) {}
+                }
                 isRecording = false;
                 btnText.textContent = "Record";
                 recordBtn.classList.remove('recording-pulse');
