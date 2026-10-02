@@ -64,7 +64,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 14px;
+      padding: 5px 14px;
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
@@ -85,12 +85,15 @@
       background: #0d1424;
       border-radius: 14px;
       border: 1px dashed var(--border);
+      min-height: 220px;
+      justify-content: center;
     }
 
     #qrcode {
       background: white;
       padding: 10px;
       border-radius: 10px;
+      display: inline-block;
     }
 
     .url-input {
@@ -291,20 +294,35 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Logs */
+    /* Logs & Retry UI */
     .log-container {
       margin-top: 14px;
       padding: 8px 10px;
       background: #060911;
       border-radius: 8px;
       border: 1px solid var(--border);
-      height: 70px;
+      height: 75px;
       overflow-y: auto;
       font-family: monospace;
       font-size: 0.7rem;
       text-align: left;
       color: #64748b;
     }
+
+    .retry-box {
+      margin: 10px 0;
+      display: none;
+    }
+    .retry-btn {
+      background: #334155;
+      color: white;
+      border: 1px solid #475569;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .retry-btn:hover { background: #475569; }
   </style>
 </head>
 <body>
@@ -317,6 +335,11 @@
 
     <div id="connection-status" class="badge badge-waiting">Setting up peer link...</div>
 
+    <div id="retry-section" class="retry-box">
+      <p style="font-size: 0.75rem; color: #f87171; margin-bottom: 6px;">Signaling connection is taking longer than usual.</p>
+      <button class="retry-btn" onclick="initializePeerSystem()">🔄 Reconnect Station</button>
+    </div>
+
     <!-- ==================== LAPTOP RECEIVER VIEW ==================== -->
     <div id="laptop-view" style="display: none;">
       <p style="font-size: 0.82rem; color: var(--text-muted);">
@@ -324,8 +347,9 @@
       </p>
 
       <div id="qr-wrapper">
+        <div id="qr-loading-spinner" style="font-size: 0.8rem; color: var(--text-muted);">Generating pair code...</div>
         <div id="qrcode"></div>
-        <input type="text" id="share-url" class="url-input" readonly />
+        <input type="text" id="share-url" class="url-input" readonly placeholder="Waiting for connection ID..." />
       </div>
 
       <div style="margin-top: 12px;">
@@ -367,9 +391,7 @@
           <button class="filter-btn" onclick="filterArchive('tension')">🕊️ Resolving Tension</button>
           <button class="filter-btn" onclick="filterArchive('heartbreak')">🌅 Moving On</button>
         </div>
-        <div id="archive-list" class="story-list">
-          <!-- Dynamically populated -->
-        </div>
+        <div id="archive-list" class="story-list"></div>
       </div>
     </div>
 
@@ -407,6 +429,7 @@
     const logBox = document.getElementById('event-logs');
     const statusBadge = document.getElementById('connection-status');
     const viewTitle = document.getElementById('view-title');
+    const retrySection = document.getElementById('retry-section');
 
     function log(msg) {
       const el = document.createElement('div');
@@ -438,4 +461,471 @@
           "Destiny in the Quiet Years"
         ]
       },
-    
+      TENSION: {
+        id: "tension",
+        label: "🕊️ Resolving Tension in Relationships",
+        class: "tag-tension",
+        keywords: [
+          "fight", "argue", "argument", "angry", "disagree", "shout", "quarrel", "patience",
+          "forgive", "forgiveness", "compromise", "understand", "talked", "silent", "hard times",
+          "money", "trouble", "made up", "apologize", "sorry", "together", "endure", "weathered"
+        ],
+        titleTemplates: [
+          "Learning the Quiet Art of Forgiveness",
+          "A Cup of Tea After the Storm",
+          "The Patience That Held Us Together",
+          "How We Learned to Listen",
+          "Weathering the Hard Seasons",
+          "Holding Hands Through the Silence",
+          "A Lifetime of Gentle Compromise"
+        ]
+      },
+      HEARTBREAK: {
+        id: "heartbreak",
+        label: "🌅 Moving on After Heartbreak",
+        class: "tag-heartbreak",
+        keywords: [
+          "break up", "broke up", "heartbreak", "broken", "cried", "left", "alone", "passed away",
+          "died", "loss", "grief", "miss", "goodbye", "heal", "healing", "move on", "moving on",
+          "let go", "letting go", "peace", "remember", "time", "carry on", "stronger"
+        ],
+        titleTemplates: [
+          "Learning to Breathe Again: After the Loss",
+          "The Memory Remains, But Life Continues",
+          "Gentle Healing: Letting Go with Grace",
+          "The Day the Pain Became Peace",
+          "Finding Strength in Solitude",
+          "Carrying Love Forward",
+          "A Gentle Farewell, A New Sunrise"
+        ]
+      }
+    };
+
+    function classifyStory(text) {
+      if (!text || text.trim().length === 0) {
+        return { category: CATEGORIES.FINDING, score: 0 };
+      }
+
+      const lower = text.toLowerCase();
+      let bestCategory = CATEGORIES.FINDING;
+      let highestScore = -1;
+
+      for (const key in CATEGORIES) {
+        const cat = CATEGORIES[key];
+        let score = 0;
+        cat.keywords.forEach(kw => {
+          if (lower.includes(kw)) {
+            score += 1.5;
+          }
+        });
+
+        if (score > highestScore) {
+          highestScore = score;
+          bestCategory = cat;
+        }
+      }
+
+      return { category: bestCategory, score: highestScore };
+    }
+
+    function generateEvocativeTitle(text, category) {
+      if (!text || text.trim().length < 10) {
+        const randomIndex = Math.floor(Math.random() * category.titleTemplates.length);
+        return category.titleTemplates[randomIndex];
+      }
+
+      const clean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
+      const words = clean.split(/\s+/);
+      const base = category.titleTemplates[Math.floor(Math.random() * category.titleTemplates.length)];
+
+      if (words.length >= 4) {
+        const snippet = words.slice(0, 4).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+        return `${base} ("${snippet}...")`;
+      }
+
+      return base;
+    }
+
+    // Google STUN configuration for reliable NAT traversal
+    const peerConfig = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+      }
+    };
+
+    let peer = null;
+    let qrInstance = null;
+    let hangTimeout = null;
+
+    function initializePeerSystem() {
+      if (peer) {
+        try { peer.destroy(); } catch(e) {}
+      }
+
+      statusBadge.textContent = "Setting up peer link...";
+      statusBadge.className = "badge badge-waiting";
+      retrySection.style.display = "none";
+      log("Initializing WebRTC Peer...");
+
+      // Timeout watchdog: If no ID after 6 seconds, show retry
+      clearTimeout(hangTimeout);
+      hangTimeout = setTimeout(() => {
+        if (!peer || !peer.id) {
+          retrySection.style.display = "block";
+          log("Signaling taking longer than expected. Click 'Reconnect Station' if stuck.");
+        }
+      }, 6000);
+
+      // Generate randomized 6-char ID for instant recognition
+      const randomStationId = 'yuelao-' + Math.random().toString(36).substring(2, 8);
+      peer = !isMobileMode ? new Peer(randomStationId, peerConfig) : new Peer(peerConfig);
+
+      peer.on('error', (err) => {
+        log(`Peer error: ${err.type || err.message}`);
+        statusBadge.textContent = "Connection Error ⚠️";
+        statusBadge.className = "badge badge-disconnected";
+        retrySection.style.display = "block";
+      });
+
+      /* ========================================================
+         LAPTOP STATION (RECEIVER)
+         ======================================================== */
+      if (!isMobileMode) {
+        document.getElementById('laptop-view').style.display = 'block';
+        viewTitle.textContent = "💻 Yue-Lao Oral Archive Station";
+
+        const categoryBadge = document.getElementById('category-badge');
+        const storyTitleInput = document.getElementById('story-title');
+        const storyTranscript = document.getElementById('story-transcript');
+        const transcriptionStatus = document.getElementById('transcription-status');
+        const archiveList = document.getElementById('archive-list');
+        const archiveCount = document.getElementById('archive-count');
+        const qrSpinner = document.getElementById('qr-loading-spinner');
+
+        let currentStoryAudioBlob = null;
+        let activeFilter = 'all';
+
+        let storyArchive = JSON.parse(localStorage.getItem('yue_lao_archive') || '[]');
+        renderArchive();
+
+        peer.on('open', (id) => {
+          clearTimeout(hangTimeout);
+          retrySection.style.display = "none";
+          qrSpinner.style.display = "none";
+
+          statusBadge.textContent = "Waiting for Phone to Connect...";
+          statusBadge.className = "badge badge-waiting";
+          log(`Archive Station ID: ${id}`);
+
+          const pairUrl = `${window.location.origin}${window.location.pathname}?pair=${id}`;
+          document.getElementById('share-url').value = pairUrl;
+
+          const qrBox = document.getElementById("qrcode");
+          qrBox.innerHTML = ''; // clear old QR
+          qrInstance = new QRCode(qrBox, {
+            text: pairUrl,
+            width: 170,
+            height: 170,
+            colorDark: "#090d16",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        });
+
+        peer.on('connection', (conn) => {
+          conn.on('open', () => {
+            statusBadge.textContent = "Interviewer Phone Connected ✅";
+            statusBadge.className = "badge badge-connected";
+            log("Elder's phone paired successfully.");
+          });
+
+          conn.on('data', async (payload) => {
+            if (payload && payload.type === 'AUDIO_CLIP') {
+              log(`Received audio story: ${(payload.buffer.byteLength / 1024).toFixed(1)} KB`);
+
+              const blob = new Blob([payload.buffer], { type: payload.mimeType });
+              currentStoryAudioBlob = blob;
+              const audioSrc = URL.createObjectURL(blob);
+
+              const player = document.getElementById('audio-playback');
+              player.src = audioSrc;
+              player.play().catch(() => log("Autoplay prevented. Click play to listen."));
+
+              const text = (payload.transcript || "").trim();
+              storyTranscript.value = text || "Spoken story recorded. Listen above or edit transcript here.";
+
+              const result = classifyStory(text);
+              const title = generateEvocativeTitle(text, result.category);
+
+              categoryBadge.className = `category-tag ${result.category.class}`;
+              categoryBadge.textContent = result.category.label;
+              categoryBadge.dataset.catId = result.category.id;
+
+              storyTitleInput.value = title;
+              transcriptionStatus.textContent = "Categorized ✅";
+
+              log(`Assigned Category: ${result.category.label}`);
+              log(`Generated Title: "${title}"`);
+
+              drawWaveformFromBlob(blob);
+            }
+          });
+
+          conn.on('close', () => {
+            statusBadge.textContent = "Interviewer Disconnected ❌";
+            statusBadge.className = "badge badge-disconnected";
+            log("Phone link closed.");
+          });
+        });
+
+        async function drawWaveformFromBlob(blob) {
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await blob.arrayBuffer();
+            const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+            const data = decoded.getChannelData(0);
+
+            const canvas = document.getElementById('visualizer');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#f43f5e';
+
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+
+            for (let i = 0; i < canvas.width; i++) {
+              let min = 1.0;
+              let max = -1.0;
+              for (let j = 0; j < step; j++) {
+                const datum = data[(i * step) + j];
+                if (datum < min) min = datum;
+                if (datum > max) max = datum;
+              }
+              ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+            }
+          } catch(e) {}
+        }
+
+        document.getElementById('btn-save-archive').onclick = () => {
+          const title = storyTitleInput.value || "Untitled Elder Story";
+          const text = storyTranscript.value;
+          const catId = categoryBadge.dataset.catId || "finding";
+          const catLabel = categoryBadge.textContent;
+
+          const newStory = {
+            id: Date.now(),
+            title: title,
+            category: catId,
+            categoryLabel: catLabel,
+            transcript: text,
+            date: new Date().toLocaleDateString()
+          };
+
+          storyArchive.unshift(newStory);
+          localStorage.setItem('yue_lao_archive', JSON.stringify(storyArchive));
+          renderArchive();
+          log(`Saved: "${title}"`);
+          alert(`Story successfully saved to archive!`);
+        };
+
+        document.getElementById('btn-copy-story').onclick = () => {
+          const full = `${storyTitleInput.value}\nTheme: ${categoryBadge.textContent}\n\n${storyTranscript.value}`;
+          navigator.clipboard.writeText(full);
+          log("Copied story to clipboard.");
+        };
+
+        document.getElementById('btn-export-txt').onclick = () => {
+          const title = storyTitleInput.value || "Elder_Story";
+          const content = `${title}\nCategory: ${categoryBadge.textContent}\nDate: ${new Date().toLocaleString()}\n\n${storyTranscript.value}`;
+          const blob = new Blob([content], { type: 'text/plain' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.txt`;
+          a.click();
+        };
+
+        window.filterArchive = function(cat) {
+          activeFilter = cat;
+          document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+          event.target.classList.add('active');
+          renderArchive();
+        };
+
+        function renderArchive() {
+          archiveList.innerHTML = '';
+          const filtered = storyArchive.filter(s => activeFilter === 'all' || s.category === activeFilter);
+          archiveCount.textContent = storyArchive.length;
+
+          if (filtered.length === 0) {
+            archiveList.innerHTML = '<div style="font-size:0.75rem; color:#64748b; padding:8px;">No stories saved in this category yet.</div>';
+            return;
+          }
+
+          filtered.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'story-item';
+            item.innerHTML = `
+              <div>
+                <strong>${s.title}</strong>
+                <div style="font-size:0.7rem; color:#94a3b8;">${s.categoryLabel} • ${s.date}</div>
+              </div>
+              <button style="background:transparent; border:none; color:#f43f5e; cursor:pointer; font-size:0.75rem;">View</button>
+            `;
+            item.onclick = () => {
+              storyTitleInput.value = s.title;
+              storyTranscript.value = s.transcript;
+              categoryBadge.textContent = s.categoryLabel;
+              categoryBadge.className = `category-tag tag-${s.category}`;
+              categoryBadge.dataset.catId = s.category;
+            };
+            archiveList.appendChild(item);
+          });
+        }
+
+      /* ========================================================
+         PHONE TRANSMITTER
+         ======================================================== */
+      } else {
+        document.getElementById('phone-view').style.display = 'block';
+        viewTitle.textContent = "🎙️ Elder Story Recorder";
+
+        const recordBtn = document.getElementById('record-trigger');
+        const label = document.getElementById('record-btn-label');
+        const timerDisplay = document.getElementById('record-timer');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let timerInterval;
+        let startTime;
+        let capturedTranscript = "";
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        if (SpeechRecognition) {
+          recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+
+          recognition.onresult = (event) => {
+            let str = "";
+            for (let i = 0; i < event.results.length; ++i) {
+              str += event.results[i][0].transcript + " ";
+            }
+            capturedTranscript = str;
+          };
+        }
+
+        peer.on('open', () => {
+          clearTimeout(hangTimeout);
+          log("Pairing with archive station...");
+          const conn = peer.connect(targetPeerId, { reliable: true });
+
+          conn.on('open', () => {
+            statusBadge.textContent = "Connected to Archive ✅";
+            statusBadge.className = "badge badge-connected";
+            recordBtn.disabled = false;
+            log("Connected. Ready to record elder story.");
+          });
+
+          conn.on('close', () => {
+            statusBadge.textContent = "Disconnected ❌";
+            statusBadge.className = "badge badge-disconnected";
+            recordBtn.disabled = true;
+            log("Connection lost.");
+          });
+
+          async function initMicrophone() {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                  echoCancellation: false,
+                  noiseSuppression: false,
+                  autoGainControl: true
+                }
+              });
+
+              const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+
+              mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+              mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+              };
+
+              mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                recordedChunks = [];
+
+                log(`Sending audio (${(audioBlob.size / 1024).toFixed(1)} KB)...`);
+
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                conn.send({
+                  type: 'AUDIO_CLIP',
+                  buffer: arrayBuffer,
+                  mimeType: mediaRecorder.mimeType || 'audio/webm',
+                  transcript: capturedTranscript
+                });
+
+                log("Story transferred to laptop!");
+                capturedTranscript = "";
+              };
+
+              recordBtn.onclick = () => {
+                if (!isRecording) {
+                  recordedChunks = [];
+                  capturedTranscript = "";
+                  mediaRecorder.start();
+                  if (recognition) {
+                    try { recognition.start(); } catch(e) {}
+                  }
+                  isRecording = true;
+                  label.textContent = "Finish";
+                  recordBtn.classList.add('pulse');
+                  timerDisplay.style.display = 'block';
+                  startTime = Date.now();
+
+                  timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const s = String(elapsed % 60).padStart(2, '0');
+                    timerDisplay.textContent = `${m}:${s}`;
+                  }, 500);
+                } else {
+                  mediaRecorder.stop();
+                  if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                  }
+                  isRecording = false;
+                  label.textContent = "Record";
+                  recordBtn.classList.remove('pulse');
+                  clearInterval(timerInterval);
+                  timerDisplay.style.display = 'none';
+                }
+              };
+
+            } catch (err) {
+              log(`Microphone Error: ${err.message}. Please allow mic access.`);
+            }
+          }
+
+          initMicrophone();
+        });
+      }
+    }
+
+    // Start on page load
+    initializePeerSystem();
+  </script>
+</body>
+</html>
