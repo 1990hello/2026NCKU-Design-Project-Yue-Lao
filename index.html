@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AirMic Voice-to-Text & Auto-Title</title>
+  <title>Yue-Lao Elder Love Story Archive</title>
 
-  <!-- PeerJS for WebRTC Direct Streaming -->
+  <!-- PeerJS for WebRTC Direct Audio Streaming -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <!-- QRCode.js for Instant Phone Pairing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -15,10 +15,11 @@
       --bg: #090d16;
       --card-bg: #131b2e;
       --border: #23314e;
-      --accent: #38bdf8;
-      --accent-hover: #0284c7;
-      --danger: #ef4444;
-      --success: #22c55e;
+      --accent: #f43f5e;
+      --accent-glow: rgba(244, 63, 94, 0.35);
+      --cat-finding: #ec4899;
+      --cat-tension: #38bdf8;
+      --cat-heartbreak: #fb923c;
       --text: #f8fafc;
       --text-muted: #94a3b8;
     }
@@ -27,7 +28,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     body {
@@ -38,36 +39,37 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 16px;
+      padding: 18px;
     }
 
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 26px;
+      padding: 24px;
       width: 100%;
-      max-width: 520px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      max-width: 580px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
       text-align: center;
     }
 
     h1 {
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       letter-spacing: -0.02em;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      color: #ffe4e6;
     }
 
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
       margin-top: 6px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .badge-disconnected { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
     .badge-connected { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); }
@@ -80,7 +82,7 @@
       align-items: center;
       margin: 12px 0;
       padding: 14px;
-      background: #0f172a;
+      background: #0d1424;
       border-radius: 14px;
       border: 1px dashed var(--border);
     }
@@ -95,7 +97,7 @@
       margin-top: 10px;
       width: 100%;
       padding: 8px 12px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text-muted);
@@ -106,107 +108,158 @@
     /* Waveform Canvas */
     canvas#visualizer {
       width: 100%;
-      height: 55px;
-      background: #0b1120;
+      height: 52px;
+      background: #090e1c;
       border-radius: 8px;
       margin-top: 10px;
       border: 1px solid var(--border);
     }
 
-    /* Title & Transcription Card */
-    .stt-card {
+    /* Story Card */
+    .story-card {
       margin-top: 16px;
-      padding: 16px;
-      background: #0b1120;
-      border-radius: 12px;
+      padding: 18px;
+      background: #090e1c;
+      border-radius: 14px;
       border: 1px solid var(--border);
       text-align: left;
     }
 
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .title-input {
-      flex: 1;
-      background: #1e293b;
-      border: 1px solid var(--border);
-      color: #38bdf8;
+    .category-tag {
+      display: inline-block;
+      font-size: 0.75rem;
       font-weight: 700;
-      font-size: 0.95rem;
-      padding: 6px 10px;
-      border-radius: 6px;
-      outline: none;
-    }
-    .title-input:focus { border-color: var(--accent); }
-
-    .stt-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
       margin-bottom: 8px;
     }
+    .tag-finding { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+    .tag-tension { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .tag-heartbreak { background: rgba(251, 146, 60, 0.2); color: #fdba74; border: 1px solid rgba(251, 146, 60, 0.4); }
 
-    .stt-status {
-      font-size: 0.75rem;
-      color: var(--accent);
-      font-weight: 600;
+    .title-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
     }
+
+    .story-title-input {
+      width: 100%;
+      background: #151e33;
+      border: 1px solid var(--border);
+      color: #ffe4e6;
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+    }
+    .story-title-input:focus { border-color: var(--accent); }
 
     .transcript-box {
       width: 100%;
-      height: 95px;
+      height: 110px;
       background: #060911;
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
-      padding: 10px;
-      font-size: 0.85rem;
-      line-height: 1.4;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      line-height: 1.5;
       resize: vertical;
       outline: none;
     }
 
-    .btn-row {
+    .action-btn-row {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
     .action-btn {
       flex: 1;
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
       font-weight: 600;
       border: 1px solid var(--border);
-      background: #1e293b;
+      background: #18233c;
       color: var(--text);
       cursor: pointer;
       transition: background 0.15s;
     }
-    .action-btn:hover { background: #334155; }
+    .action-btn:hover { background: #263559; }
 
-    /* Phone Controls */
-    .mic-button-container {
+    /* Archive List Section */
+    .archive-section {
+      margin-top: 22px;
+      text-align: left;
+    }
+    .archive-header {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
-      margin: 32px 0 20px 0;
+      margin-bottom: 10px;
+    }
+    .archive-filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .filter-btn {
+      background: #131b2e;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filter-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .story-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .story-item {
+      background: #090e1c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .story-item:hover { border-color: var(--accent); }
+
+    /* Phone Interview Interface */
+    .elder-mic-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 30px 0 16px 0;
     }
 
-    .record-btn {
-      background: var(--danger);
+    .elder-record-btn {
+      background: linear-gradient(135deg, #f43f5e, #be123c);
       color: white;
-      width: 110px;
-      height: 110px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
       border: none;
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -214,70 +267,60 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: all 0.2s ease;
-      box-shadow: 0 0 24px rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 28px var(--accent-glow);
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s;
     }
-    .record-btn:active { transform: scale(0.95); }
-    .record-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .elder-record-btn:active { transform: scale(0.95); }
+    .elder-record-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-    .recording-pulse {
-      animation: pulse-ring 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    .pulse {
+      animation: pulse-ring 1.3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
     }
     @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-      70% { box-shadow: 0 0 0 22px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.6); }
+      70% { box-shadow: 0 0 0 24px rgba(244, 63, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
     }
 
-    .timer-display {
-      font-size: 1.4rem;
+    .timer-text {
+      font-size: 1.5rem;
       font-weight: 700;
-      color: var(--danger);
+      color: var(--accent);
+      margin-top: 10px;
       font-variant-numeric: tabular-nums;
-      margin-top: 8px;
     }
 
     /* Logs */
-    .log-box {
+    .log-container {
       margin-top: 14px;
       padding: 8px 10px;
       background: #060911;
       border-radius: 8px;
       border: 1px solid var(--border);
-      height: 75px;
+      height: 70px;
       overflow-y: auto;
       font-family: monospace;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       text-align: left;
       color: #64748b;
     }
-    .log-entry { margin-bottom: 2px; }
   </style>
-
-  <!-- ES Module Script for Whisper AI fallback -->
-  <script type="module">
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
-
-    window.initWhisper = async function(onProgress) {
-      return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
-        progress_callback: onProgress
-      });
-    };
-  </script>
 </head>
 <body>
 
   <div class="card">
-    <h1 id="view-title">AirMic Audio-to-Text</h1>
-    <div id="connection-status" class="badge badge-waiting">Initializing peer connection...</div>
+    <h1 id="view-title">Yue-Lao Oral Archive</h1>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+      Capturing the wisdom, romance, and resilience of elder life stories
+    </p>
+
+    <div id="connection-status" class="badge badge-waiting">Setting up peer link...</div>
 
     <!-- ==================== LAPTOP RECEIVER VIEW ==================== -->
     <div id="laptop-view" style="display: none;">
-      <p style="font-size: 0.85rem; color: var(--text-muted);">
-        Scan this QR code with your phone camera to pair:
+      <p style="font-size: 0.82rem; color: var(--text-muted);">
+        Scan this QR code with the interviewer's phone to begin collecting stories:
       </p>
 
       <div id="qr-wrapper">
@@ -285,55 +328,75 @@
         <input type="text" id="share-url" class="url-input" readonly />
       </div>
 
-      <div style="margin-top: 14px;">
-        <h3 style="font-size: 0.85rem; margin-bottom: 6px; text-align: left;">Latest Audio Input</h3>
+      <div style="margin-top: 12px;">
         <audio id="audio-playback" controls style="width: 100%; border-radius: 8px;"></audio>
         <canvas id="visualizer"></canvas>
       </div>
 
-      <!-- Generated Title & Transcription Card -->
-      <div class="stt-card">
+      <!-- Current Story Card -->
+      <div class="story-card">
+        <div id="category-badge" class="category-tag tag-finding">🌟 Categorizing Theme...</div>
+
         <div class="title-row">
-          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Title:</label>
-          <input type="text" id="generated-title" class="title-input" placeholder="Audio Title will be generated here..." />
+          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">Story Title</label>
+          <input type="text" id="story-title" class="story-title-input" placeholder="Unique title will appear here..." />
         </div>
 
-        <div class="stt-header">
-          <strong style="font-size: 0.8rem;">📝 Transcribed Speech</strong>
-          <span id="stt-status" class="stt-status">Ready</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <strong style="font-size: 0.78rem;">📜 Elder's Spoken Story</strong>
+          <span id="transcription-status" style="font-size: 0.72rem; color: var(--accent); font-weight: 600;">Listening</span>
         </div>
 
-        <textarea id="transcript-text" class="transcript-box" placeholder="Your transcribed text will appear here automatically after you record on your phone..."></textarea>
+        <textarea id="story-transcript" class="transcript-box" placeholder="When the elder speaks into the phone, their story will appear here automatically with thematic sorting..."></textarea>
 
-        <div class="btn-row">
-          <button id="btn-copy" class="action-btn">📋 Copy Note</button>
-          <button id="btn-save-txt" class="action-btn">💾 Save .TXT</button>
-          <button id="btn-save-audio" class="action-btn">🎵 Save Audio</button>
+        <div class="action-btn-row">
+          <button id="btn-save-archive" class="action-btn">📚 Save to Archive</button>
+          <button id="btn-copy-story" class="action-btn">📋 Copy</button>
+          <button id="btn-export-txt" class="action-btn">💾 Save .TXT</button>
+        </div>
+      </div>
+
+      <!-- Historical Archive Gallery -->
+      <div class="archive-section">
+        <div class="archive-header">
+          <h3 style="font-size: 0.9rem;">Collected Stories (<span id="archive-count">0</span>)</h3>
+        </div>
+        <div class="archive-filters">
+          <button class="filter-btn active" onclick="filterArchive('all')">All</button>
+          <button class="filter-btn" onclick="filterArchive('finding')">🌟 Finding Love</button>
+          <button class="filter-btn" onclick="filterArchive('tension')">🕊️ Resolving Tension</button>
+          <button class="filter-btn" onclick="filterArchive('heartbreak')">🌅 Moving On</button>
+        </div>
+        <div id="archive-list" class="story-list">
+          <!-- Dynamically populated -->
         </div>
       </div>
     </div>
 
     <!-- ==================== PHONE TRANSMITTER VIEW ==================== -->
     <div id="phone-view" style="display: none;">
-      <p style="font-size: 0.85rem; color: var(--text-muted);">
-        Tap Record, speak into your phone, and tap Stop. Your voice will automatically transfer, transcribe, and get a title on your laptop.
+      <p style="font-size: 0.9rem; color: #cbd5e1; margin-top: 6px;">
+        Hold this close to the elder. Tap <strong>Record</strong> while they share their love story, then tap <strong>Finish</strong>.
       </p>
 
-      <div class="mic-button-container">
-        <button id="record-trigger" class="record-btn" disabled>
-          <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
+      <div class="elder-mic-box">
+        <button id="record-trigger" class="elder-record-btn" disabled>
+          <svg width="34" height="34" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
-          <span id="record-btn-text">Record</span>
+          <span id="record-btn-label">Record</span>
         </button>
+        <div id="record-timer" class="timer-text" style="display: none;">00:00</div>
       </div>
 
-      <div id="record-timer" class="timer-display" style="display: none;">00:00</div>
+      <p style="font-size: 0.78rem; color: var(--text-muted);">
+        ✨ The story will automatically transcribe, generate an evocative title, and categorize itself on your laptop station.
+      </p>
     </div>
 
     <!-- System Event Logs -->
-    <div id="event-logs" class="log-box"></div>
+    <div id="event-logs" class="log-container"></div>
   </div>
 
   <script>
@@ -341,376 +404,38 @@
     const targetPeerId = params.get('pair');
     const isMobileMode = Boolean(targetPeerId);
 
-    const logContainer = document.getElementById('event-logs');
+    const logBox = document.getElementById('event-logs');
     const statusBadge = document.getElementById('connection-status');
     const viewTitle = document.getElementById('view-title');
 
-    function appendLog(msg) {
+    function log(msg) {
       const el = document.createElement('div');
-      el.className = 'log-entry';
       el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-      logContainer.appendChild(el);
-      logContainer.scrollTop = logContainer.scrollHeight;
+      logBox.appendChild(el);
+      logBox.scrollTop = logBox.scrollHeight;
     }
-
-    // Smart Auto-Title Generator
-    function generateSmartTitle(text) {
-      if (!text || text.trim().length === 0) {
-        return `Voice Memo - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-
-      const clean = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
-      const words = clean.split(/\s+/);
-      const lower = text.toLowerCase();
-
-      // Check intent patterns
-      if (lower.includes("remind me to") || lower.includes("reminder")) {
-        return `Reminder: ${words.slice(0, 5).join(" ")}...`;
-      }
-      if (lower.includes("meeting") || lower.includes("discuss") || lower.includes("project")) {
-        return `Project Note: ${words.slice(0, 4).join(" ")}`;
-      }
-      if (lower.includes("idea") || lower.includes("design") || lower.includes("concept")) {
-        return `Design Idea: ${words.slice(0, 4).join(" ")}`;
-      }
-
-      // Default: Capitalize first 4-5 words
-      const summaryWords = words.slice(0, 5).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-      return summaryWords.join(" ");
-    }
-
-    const peer = new Peer();
 
     /* ========================================================
-       LAPTOP MODE (RECEIVE, TRANSCRIBE, AUTO-TITLE)
+       ELDER LOVE STORY CLASSIFIER & TITLE SYNTHESIZER
        ======================================================== */
-    if (!isMobileMode) {
-      document.getElementById('laptop-view').style.display = 'block';
-      viewTitle.textContent = "💻 Laptop Receiver";
-
-      let transcriberPipeline = null;
-      let isModelLoading = false;
-      let lastAudioBlob = null;
-
-      const sttStatus = document.getElementById('stt-status');
-      const transcriptBox = document.getElementById('transcript-text');
-      const titleInput = document.getElementById('generated-title');
-
-      // Pre-warm Whisper AI
-      async function loadWhisperModel() {
-        if (transcriberPipeline || isModelLoading) return;
-        isModelLoading = true;
-        sttStatus.textContent = "Loading AI Engine...";
-        appendLog("Pre-loading Whisper model into browser cache...");
-
-        try {
-          transcriberPipeline = await window.initWhisper((prog) => {
-            if (prog.status === 'progress') {
-              sttStatus.textContent = `Loading AI: ${Math.round(prog.progress || 0)}%`;
-            }
-          });
-          sttStatus.textContent = "AI Ready ✅";
-          appendLog("Whisper model ready for local transcription.");
-        } catch (err) {
-          sttStatus.textContent = "AI Ready (Web Speech)";
-          appendLog(`Whisper note: ${err.message}`);
-        } finally {
-          isModelLoading = false;
-        }
-      }
-
-      peer.on('open', (id) => {
-        statusBadge.textContent = "Waiting for Phone to Connect...";
-        statusBadge.className = "badge badge-waiting";
-        appendLog(`Laptop Peer ID: ${id}`);
-
-        const pairUrl = `${window.location.origin}${window.location.pathname}?pair=${id}`;
-        document.getElementById('share-url').value = pairUrl;
-
-        new QRCode(document.getElementById("qrcode"), {
-          text: pairUrl,
-          width: 170,
-          height: 170,
-          colorDark: "#090d16",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
-
-        loadWhisperModel();
-      });
-
-      peer.on('connection', (conn) => {
-        conn.on('open', () => {
-          statusBadge.textContent = "Phone Paired & Ready ✅";
-          statusBadge.className = "badge badge-connected";
-          appendLog("Phone connected via WebRTC.");
-        });
-
-        conn.on('data', async (payload) => {
-          if (payload && payload.type === 'AUDIO_CLIP') {
-            appendLog(`Received audio payload: ${(payload.buffer.byteLength / 1024).toFixed(1)} KB`);
-
-            const blob = new Blob([payload.buffer], { type: payload.mimeType });
-            lastAudioBlob = blob;
-            const audioSrc = URL.createObjectURL(blob);
-
-            const player = document.getElementById('audio-playback');
-            player.src = audioSrc;
-            player.play().catch(() => appendLog("Autoplay blocked. Click play."));
-
-            // Check if phone already transcribed via Web Speech API
-            if (payload.phoneTranscript && payload.phoneTranscript.length > 0) {
-              const text = payload.phoneTranscript.trim();
-              transcriptBox.value = text;
-              titleInput.value = generateSmartTitle(text);
-              sttStatus.textContent = "Transcribed (Phone) ✅";
-              appendLog(`Transcribed: "${text}"`);
-              appendLog(`Auto-Title: "${titleInput.value}"`);
-            }
-
-            // Decode and run waveform + Whisper inference
-            handleIncomingAudio(blob, payload.phoneTranscript);
-          }
-        });
-
-        conn.on('close', () => {
-          statusBadge.textContent = "Phone Disconnected ❌";
-          statusBadge.className = "badge badge-disconnected";
-          appendLog("Phone disconnected.");
-        });
-      });
-
-      async function handleIncomingAudio(blob, existingText) {
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const arrayBuffer = await blob.arrayBuffer();
-          const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-          drawWaveform(decodedBuffer.getChannelData(0));
-
-          // If phone already captured text via Web Speech API, skip heavy Whisper run
-          if (existingText && existingText.trim().length > 0) {
-            return;
-          }
-
-          if (!transcriberPipeline) {
-            await loadWhisperModel();
-          }
-
-          if (transcriberPipeline) {
-            sttStatus.textContent = "Transcribing with Whisper AI...";
-            appendLog("Transcribing audio on laptop with Whisper...");
-
-            const targetSampleRate = 16000;
-            const offlineCtx = new OfflineAudioContext(
-              1,
-              Math.ceil(decodedBuffer.duration * targetSampleRate),
-              targetSampleRate
-            );
-            const source = offlineCtx.createBufferSource();
-            source.buffer = decodedBuffer;
-            source.connect(offlineCtx.destination);
-            source.start(0);
-            const resampledBuffer = await offlineCtx.startRendering();
-            const audioData16k = resampledBuffer.getChannelData(0);
-
-            const result = await transcriberPipeline(audioData16k);
-            const text = result.text.trim();
-
-            transcriptBox.value = text;
-            titleInput.value = generateSmartTitle(text);
-            sttStatus.textContent = "Complete ✅";
-            appendLog(`Transcribed: "${text}"`);
-            appendLog(`Auto-Title: "${titleInput.value}"`);
-          }
-        } catch (err) {
-          sttStatus.textContent = "Processing Notice";
-          appendLog(`Notice: ${err.message}`);
-        }
-      }
-
-      function drawWaveform(data) {
-        const canvas = document.getElementById('visualizer');
-        const ctx = canvas.getContext('2d');
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#38bdf8';
-
-        const step = Math.ceil(data.length / canvas.width);
-        const amp = canvas.height / 2;
-
-        for (let i = 0; i < canvas.width; i++) {
-          let min = 1.0;
-          let max = -1.0;
-          for (let j = 0; j < step; j++) {
-            const datum = data[(i * step) + j];
-            if (datum < min) min = datum;
-            if (datum > max) max = datum;
-          }
-          ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
-        }
-      }
-
-      // Export Buttons
-      document.getElementById('btn-copy').onclick = () => {
-        const fullContent = `${titleInput.value}\n\n${transcriptBox.value}`;
-        navigator.clipboard.writeText(fullContent);
-        appendLog("Copied title and transcript to clipboard.");
-      };
-
-      document.getElementById('btn-save-txt').onclick = () => {
-        const title = titleInput.value || "Untitled Note";
-        const content = `${title}\nDate: ${new Date().toLocaleString()}\n\n${transcriptBox.value}`;
-        const blob = new Blob([content], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.txt`;
-        a.click();
-      };
-
-      document.getElementById('btn-save-audio').onclick = () => {
-        if (!lastAudioBlob) return;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(lastAudioBlob);
-        a.download = `recording-${Date.now()}.webm`;
-        a.click();
-      };
-
-    /* ========================================================
-       PHONE MODE (RECORD & REAL-TIME SPEECH CAPTURE)
-       ======================================================== */
-    } else {
-      document.getElementById('phone-view').style.display = 'block';
-      viewTitle.textContent = "📱 Phone Microphone";
-
-      const recordBtn = document.getElementById('record-trigger');
-      const btnText = document.getElementById('record-btn-text');
-      const timerDisplay = document.getElementById('record-timer');
-
-      let mediaRecorder;
-      let recordedChunks = [];
-      let isRecording = false;
-      let timerInterval;
-      let startTime;
-      let liveTranscript = "";
-
-      // Native Web Speech Recognition on Phone
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      let recognition = null;
-      if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event) => {
-          let str = "";
-          for (let i = 0; i < event.results.length; ++i) {
-            str += event.results[i][0].transcript + " ";
-          }
-          liveTranscript = str;
-        };
-      }
-
-      peer.on('open', () => {
-        appendLog("Connecting to laptop peer...");
-        const conn = peer.connect(targetPeerId, { reliable: true });
-
-        conn.on('open', () => {
-          statusBadge.textContent = "Connected to Laptop ✅";
-          statusBadge.className = "badge badge-connected";
-          recordBtn.disabled = false;
-          appendLog("Linked. Ready to record.");
-        });
-
-        conn.on('close', () => {
-          statusBadge.textContent = "Disconnected from Laptop ❌";
-          statusBadge.className = "badge badge-disconnected";
-          recordBtn.disabled = true;
-          appendLog("Connection lost.");
-        });
-
-        async function initAudio() {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: true
-              }
-            });
-
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-              ? 'audio/webm;codecs=opus'
-              : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
-
-            mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-
-            mediaRecorder.ondataavailable = (e) => {
-              if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-              const audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-              recordedChunks = [];
-
-              appendLog(`Sending ${(audioBlob.size / 1024).toFixed(1)} KB to laptop...`);
-
-              const arrayBuffer = await audioBlob.arrayBuffer();
-              conn.send({
-                type: 'AUDIO_CLIP',
-                buffer: arrayBuffer,
-                mimeType: mediaRecorder.mimeType || 'audio/webm',
-                phoneTranscript: liveTranscript
-              });
-
-              appendLog("Sent to laptop!");
-              liveTranscript = "";
-            };
-
-            recordBtn.onclick = () => {
-              if (!isRecording) {
-                recordedChunks = [];
-                liveTranscript = "";
-                mediaRecorder.start();
-                if (recognition) {
-                  try { recognition.start(); } catch(e) {}
-                }
-                isRecording = true;
-                btnText.textContent = "Stop";
-                recordBtn.classList.add('recording-pulse');
-                timerDisplay.style.display = 'block';
-                startTime = Date.now();
-
-                timerInterval = setInterval(() => {
-                  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-                  const s = String(elapsed % 60).padStart(2, '0');
-                  timerDisplay.textContent = `${m}:${s}`;
-                }, 500);
-              } else {
-                mediaRecorder.stop();
-                if (recognition) {
-                  try { recognition.stop(); } catch(e) {}
-                }
-                isRecording = false;
-                btnText.textContent = "Record";
-                recordBtn.classList.remove('recording-pulse');
-                clearInterval(timerInterval);
-                timerDisplay.style.display = 'none';
-              }
-            };
-
-          } catch (err) {
-            appendLog(`Microphone Error: ${err.message}. Please grant permission.`);
-          }
-        }
-
-        initAudio();
-      });
-    }
-  </script>
-</body>
-</html>
+    const CATEGORIES = {
+      FINDING: {
+        id: "finding",
+        label: "🌟 Finding a Romantic Partner",
+        class: "tag-finding",
+        keywords: [
+          "met", "first met", "meet", "saw her", "saw him", "love at first sight", "date", "dating",
+          "introduce", "match", "fall in love", "fell in love", "young", "shy", "eyes", "wedding",
+          "propose", "letter", "school", "neighborhood", "partner", "attracted", "courtship", "marry"
+        ],
+        titleTemplates: [
+          "When Our Paths First Crossed",
+          "The Day I Saw You: A First Meeting",
+          "A Letter from Youth: Finding Love",
+          "Under the Banyan Tree: The Beginning",
+          "Love at First Glance",
+          "The Courage to Say Hello",
+          "Destiny in the Quiet Years"
+        ]
+      },
+    
