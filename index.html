@@ -42,4 +42,265 @@
 
     header h1 {
       font-size: 1.85rem;
-      color: var(--
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Reliable Clickable Upload Zone */
+    .upload-card {
+      background: var(--card-bg);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .upload-card:hover, .upload-card.dragover {
+      border-color: var(--primary);
+      background-color: var(--accent);
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* Invisible file input that stretches across the parent container */
+    #fileInput {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    h3, p, .btn {
+      pointer-events: none; /* Prevents text elements from swallowing clicks */
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border: none;
+    }
+
+    /* File Metadata */
+    .file-details {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-top: 1.5rem;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .file-meta span {
+      display: inline-block;
+      margin-right: 1.2rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .file-meta strong {
+      color: var(--text);
+    }
+
+    .action-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .action-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* Content Viewer */
+    .viewer-card {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .viewer-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafbfc;
+    }
+
+    .viewer-header h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .viewer-content {
+      padding: 1.5rem;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      color: #334155;
+      line-height: 1.7;
+      background: #ffffff;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Elderly Stories Reader & Sorter</h1>
+      <p>Upload a text file containing transcribed stories to inspect its contents.</p>
+    </header>
+
+    <!-- Upload Card -->
+    <div class="upload-card" id="dropZone">
+      <!-- Input element is layered on top so the browser reliably catches clicks and drags -->
+      <input type="file" id="fileInput" accept=".txt,text/plain" />
+      <span class="upload-icon">📄</span>
+      <h3>Choose a text file or drag & drop it here</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Supports .txt files</p>
+      <div class="btn">Browse File</div>
+    </div>
+
+    <!-- Metadata Bar -->
+    <div class="file-details" id="fileDetails">
+      <div class="file-meta">
+        <span>File: <strong id="metaFileName">-</strong></span>
+        <span>Size: <strong id="metaFileSize">-</strong></span>
+        <span>Words: <strong id="metaWordCount">-</strong></span>
+      </div>
+      <button class="action-btn" id="clearBtn">Remove File</button>
+    </div>
+
+    <!-- Content Display -->
+    <div class="viewer-card" id="viewerCard">
+      <div class="viewer-header">
+        <h2>Document Text Content</h2>
+        <button class="action-btn" id="copyBtn">Copy Text</button>
+      </div>
+      <pre class="viewer-content" id="textContent"></pre>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const fileDetails = document.getElementById('fileDetails');
+    const viewerCard = document.getElementById('viewerCard');
+    const textContent = document.getElementById('textContent');
+    const metaFileName = document.getElementById('metaFileName');
+    const metaFileSize = document.getElementById('metaFileSize');
+    const metaWordCount = document.getElementById('metaWordCount');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 1. Listen for standard file selector changes
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleFile(file);
+    });
+
+    // 2. Setup Drag & Drop Visual cues
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    // 3. File Processing & Display
+    function handleFile(file) {
+      // Validate that it's a text file
+      if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
+        alert('Please upload a valid plain text (.txt) file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const text = event.target.result;
+        
+        // Output text to viewer
+        textContent.textContent = text;
+        
+        // Process Metadata
+        metaFileName.textContent = file.name;
+        metaFileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+        metaWordCount.textContent = words.toLocaleString();
+
+        // Reveal the hidden UI panels
+        fileDetails.style.display = 'flex';
+        viewerCard.style.display = 'block';
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    // 4. Reset UI
+    clearBtn.addEventListener('click', () => {
+      fileInput.value = ''; // Reset input so the same file can be uploaded again
+      textContent.textContent = '';
+      fileDetails.style.display = 'none';
+      viewerCard.style.display = 'none';
+    });
+
+    // 5. Copy text button functionality
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(textContent.textContent).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = 'Copy Text', 2000);
+      });
+    });
+  </script>
+</body>
+</html>
