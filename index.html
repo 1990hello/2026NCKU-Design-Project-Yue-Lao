@@ -3,495 +3,314 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yue-Lao Elder Love Story Intelligence & Sorting System</title>
-
+  <title>Elderly Stories - Story Sorter & Viewer</title>
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #131b2e;
-      --border: #23314e;
-      --accent: #f43f5e;
-      --cat-finding: #ec4899;
-      --cat-tension: #38bdf8;
-      --cat-heartbreak: #fb923c;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-color: #f7f9fb;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --accent: #eff6ff;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
-      background-color: var(--bg);
+      background-color: var(--bg-color);
       color: var(--text);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 30px 16px;
+      line-height: 1.6;
+      padding: 2rem 1rem;
     }
 
     .container {
-      width: 100%;
       max-width: 900px;
-    }
-
-    /* Header */
-    header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      letter-spacing: -0.02em;
-      color: #ffe4e6;
-      margin-bottom: 6px;
-    }
-
-    p.subtitle {
-      font-size: 0.92rem;
-      color: var(--text-muted);
-      max-width: 600px;
       margin: 0 auto;
     }
 
-    /* Upload Area */
-    .upload-zone {
-      background: var(--card-bg);
-      border: 2px dashed var(--border);
-      border-radius: 16px;
-      padding: 32px 20px;
+    header {
+      margin-bottom: 2rem;
       text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-bottom: 24px;
     }
 
-    .upload-zone:hover, .upload-zone.dragover {
-      border-color: var(--accent);
-      background: #18223a;
+    header h1 {
+      font-size: 1.85rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Upload Area */
+    .upload-card {
+      background: var(--card-bg);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .upload-card:hover, .upload-card.dragover {
+      border-color: var(--primary);
+      background-color: var(--accent);
     }
 
     .upload-icon {
-      font-size: 2.2rem;
-      margin-bottom: 8px;
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
     }
 
-    .upload-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #f1f5f9;
-      margin-bottom: 4px;
-    }
-
-    .upload-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
+    .upload-card input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
     }
 
     .btn {
-      padding: 9px 18px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      background: #1e293b;
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .btn:hover {
-      background: #334155;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--primary);
       color: white;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border: none;
+      pointer-events: none;
     }
 
-    .btn-primary:hover {
-      background: #e11d48;
-    }
-
-    /* Stats Overview */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
+    /* File Metadata */
+    .file-details {
+      display: none;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .stat-val {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    /* Filter Tabs */
-    .filter-bar {
-      display: flex;
+      padding: 1rem 1.5rem;
+      margin-top: 1.5rem;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 1rem;
     }
 
-    .filters {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .filter-pill {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .filter-pill.active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    /* Story Grid */
-    .story-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-
-    .story-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
-      transition: transform 0.15s, border-color 0.15s;
-    }
-
-    .story-card:hover {
-      border-color: #3b82f6;
-    }
-
-    .story-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-      gap: 10px;
-    }
-
-    .story-title {
-      font-size: 1.12rem;
-      font-weight: 700;
-      color: #ffe4e6;
-      line-height: 1.35;
-    }
-
-    .cat-badge {
+    .file-meta span {
       display: inline-block;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .cat-finding { background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
-    .cat-tension { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
-    .cat-heartbreak { background: rgba(251, 146, 60, 0.18); color: #fdba74; border: 1px solid rgba(251, 146, 60, 0.4); }
-
-    .story-body {
+      margin-right: 1.2rem;
       font-size: 0.88rem;
-      line-height: 1.6;
-      color: #cbd5e1;
-      margin-bottom: 14px;
-      white-space: pre-wrap;
+      color: var(--text-muted);
     }
 
-    .story-footer {
+    .file-meta strong {
+      color: var(--text);
+    }
+
+    .action-btn {
+      padding: 0.45rem 0.9rem;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .action-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* Content Viewer */
+    .viewer-card {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .viewer-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding-top: 10px;
+      background: #fafbfc;
     }
 
-    .matched-chips {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
+    .viewer-header h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
     }
 
-    .chip {
-      background: #090e1c;
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 0.68rem;
-      color: #94a3b8;
-      border: 1px solid #1e293b;
+    .viewer-content {
+      padding: 1.5rem;
+      max-height: 520px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      color: #334155;
+      line-height: 1.7;
+      background: #ffffff;
+      border: none;
     }
 
-    /* Modal for Manual Story Input */
-    .modal {
+    /* Roadmap preview for Step 2 */
+    .next-steps-banner {
       display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 100;
-    }
-
-    .modal-content {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      width: 100%;
-      max-width: 600px;
-      padding: 24px;
-    }
-
-    .modal-content textarea {
-      width: 100%;
-      height: 180px;
-      background: #090d16;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 12px;
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      border-radius: 4px;
       font-size: 0.88rem;
-      line-height: 1.5;
-      margin: 12px 0 16px 0;
-      outline: none;
-      resize: vertical;
+      color: #1e40af;
     }
   </style>
 </head>
 <body>
-
   <div class="container">
     <header>
-      <h1>Yue-Lao Elder Love Story Sorting System</h1>
-      <p class="subtitle">
-        Intelligent thematic text-sorting engine that reads life stories of the elderly, classifies them into three love categories, and crafts unique essence titles.
-      </p>
+      <h1>Elderly Stories Reader & Sorter</h1>
+      <p>Upload a text file containing transcribed stories to inspect contents before classification.</p>
     </header>
 
-    <!-- File Upload Zone -->
-    <div class="upload-zone" id="drop-zone">
-      <div class="upload-icon">📂</div>
-      <div class="upload-title">Drop your text file here, or click to browse</div>
-      <div class="upload-desc">Supports <code>.txt</code> or <code>.json</code> with multiple stories separated by <code>---</code> or new paragraphs</div>
-      <input type="file" id="file-input" accept=".txt,.json" style="display: none;" />
-
-      <div class="btn-group">
-        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Select File</button>
-        <button class="btn" onclick="loadSampleElderStories()">Load 6 Sample Stories</button>
-        <button class="btn" onclick="openPasteModal()">Paste Text Manually</button>
-      </div>
+    <!-- Upload Card -->
+    <div class="upload-card" id="dropZone">
+      <input type="file" id="fileInput" accept=".txt,text/plain" />
+      <span class="upload-icon">📄</span>
+      <h3>Choose a text file or drag & drop it here</h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Supports .txt files containing collected stories</p>
+      <div class="btn">Browse File</div>
     </div>
 
-    <!-- Category Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-val" id="total-count" style="color: #f8fafc;">0</div>
-        <div class="stat-label">Total Stories</div>
+    <!-- Metadata Bar -->
+    <div class="file-details" id="fileDetails">
+      <div class="file-meta">
+        <span>File: <strong id="metaFileName">-</strong></span>
+        <span>Size: <strong id="metaFileSize">-</strong></span>
+        <span>Word Count: <strong id="metaWordCount">-</strong></span>
       </div>
-      <div class="stat-card">
-        <div class="stat-val" id="count-finding" style="color: var(--cat-finding);">0</div>
-        <div class="stat-label">🌟 Finding a Partner</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="count-tension" style="color: var(--cat-tension);">0</div>
-        <div class="stat-label">🕊️ Resolving Tension</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="count-heartbreak" style="color: var(--cat-heartbreak);">0</div>
-        <div class="stat-label">🌅 Moving On</div>
-      </div>
+      <button class="action-btn" id="clearBtn">Remove File</button>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <div class="filters">
-        <button class="filter-pill active" onclick="setFilter('all')">All Stories</button>
-        <button class="filter-pill" onclick="setFilter('finding')">🌟 Finding a Partner</button>
-        <button class="filter-pill" onclick="setFilter('tension')">🕊️ Resolving Tension</button>
-        <button class="filter-pill" onclick="setFilter('heartbreak')">🌅 Moving On</button>
+    <!-- Content Display -->
+    <div class="viewer-card" id="viewerCard">
+      <div class="viewer-header">
+        <h2>Document Text Content</h2>
+        <button class="action-btn" id="copyBtn">Copy Text</button>
       </div>
-
-      <button class="btn" onclick="exportSortedJSON()">💾 Export Categorized Data</button>
+      <pre class="viewer-content" id="textContent"></pre>
     </div>
 
-    <!-- Story Stream -->
-    <div class="story-grid" id="story-container">
-      <div style="text-align: center; color: var(--text-muted); padding: 40px;">
-        No stories loaded yet. Click <strong>"Load 6 Sample Stories"</strong> above or upload your own file!
-      </div>
-    </div>
-  </div>
-
-  <!-- Manual Paste Modal -->
-  <div class="modal" id="paste-modal">
-    <div class="modal-content">
-      <h3 style="font-size: 1.1rem; color: #ffe4e6;">Paste Elder Stories</h3>
-      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
-        Paste one or more stories. Separate different stories with three dashes (<code>---</code>).
-      </p>
-      <textarea id="manual-text-input" placeholder="Story 1...&#10;&#10;---&#10;&#10;Story 2..."></textarea>
-      <div style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button class="btn" onclick="closePasteModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="submitManualText()">Sort & Categorize</button>
-      </div>
+    <!-- Next Phase Info -->
+    <div class="next-steps-banner" id="nextStepsBanner">
+      <strong>Step 1 Complete:</strong> Text file loaded successfully. Ready to implement <strong>Step 2</strong> (splitting stories and sorting into the 3 romantic relationship categories).
     </div>
   </div>
 
   <script>
-    /* ========================================================
-       THEMATIC TAXONOMY & NLP CLASSIFIER
-       ======================================================== */
-    const THEMES = {
-      FINDING: {
-        id: "finding",
-        label: "🌟 Finding a Romantic Partner",
-        cssClass: "cat-finding",
-        keywords: [
-          "met", "first met", "saw her", "saw him", "love at first sight", "date", "dating", "matchmaker",
-          "introduced", "fall in love", "fell in love", "youth", "shy", "glance", "smile", "wedding",
-          "propose", "proposal", "letter", "train station", "school", "neighborhood", "courtship", "marry",
-          "bicycle", "dance", "eyes", "destiny", "fate", "holding hands", "young man", "young girl"
-        ],
-        titleTemplates: [
-          "When Our Paths First Crossed",
-          "The Glance That Changed Everything",
-          "A Love Letter from Youth",
-          "Under the Banyan Tree: The First Meeting",
-          "Destiny at the Train Station",
-          "The Day I Gathered the Courage",
-          "A Bicycle Ride into Love",
-          "Finding My Lifelong Companion"
-        ]
-      },
-      TENSION: {
-        id: "tension",
-        label: "🕊️ Resolving Tension in Relationships",
-        cssClass: "cat-tension",
-        keywords: [
-          "fight", "argue", "argument", "angry", "disagree", "quarrel", "patience", "forgive",
-          "forgiveness", "compromise", "understand", "understanding", "silent", "hard times",
-          "poverty", "money", "trouble", "made up", "apologize", "sorry", "together", "endure",
-          "weathered", "stubborn", "listened", "cup of tea", "walked away", "learned to speak"
-        ],
-        titleTemplates: [
-          "The Gentle Art of Forgiveness",
-          "A Warm Cup of Tea After the Storm",
-          "The Patience That Kept Us Together",
-          "Learning to Listen in Silence",
-          "Weathering the Bitter Seasons",
-          "Holding Hands Through the Disagreements",
-          "A Half-Century of Soft Compromise",
-          "How We Learned to Say Sorry"
-        ]
-      },
-      HEARTBREAK: {
-        id: "heartbreak",
-        label: "🌅 Moving on After Heartbreak",
-        cssClass: "cat-heartbreak",
-        keywords: [
-          "break up", "broke up", "heartbreak", "broken", "cried", "left", "alone", "passed away",
-          "died", "loss", "grief", "miss", "goodbye", "heal", "healing", "move on", "moving on",
-          "let go", "letting go", "peace", "remember", "time heals", "carry on", "stronger", "cemetery",
-          "widow", "widower", "solitude", "tears", "parting", "fond memory"
-        ],
-        titleTemplates: [
-          "Learning to Breathe Again: After the Loss",
-          "The Memory Remains, But the Sun Still Rises",
-          "Gentle Healing: Letting Go with Grace",
-          "When the Tears Turned into Gratitude",
-          "Carrying Love Quietly Forward",
-          "A Soft Farewell, A New Horizon",
-          "Finding Peace in the Emptiness",
-          "The Long Walk Back to Myself"
-        ]
-      }
-    };
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const fileDetails = document.getElementById('fileDetails');
+    const viewerCard = document.getElementById('viewerCard');
+    const nextStepsBanner = document.getElementById('nextStepsBanner');
+    const textContent = document.getElementById('textContent');
+    const metaFileName = document.getElementById('metaFileName');
+    const metaFileSize = document.getElementById('metaFileSize');
+    const metaWordCount = document.getElementById('metaWordCount');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
 
-    let processedStories = [];
-    let currentFilter = 'all';
+    // Drag-and-drop visual states
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
 
-    function classifyStory(text) {
-      const lower = text.toLowerCase();
-      let bestCategory = THEMES.FINDING;
-      let highestScore = -1;
-      let matchedKeywords = [];
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
 
-      for (const key in THEMES) {
-        const theme = THEMES[key];
-        let score = 0;
-        let matches = [];
+    // File processing
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleFile(file);
+    });
 
-        theme.keywords.forEach(kw => {
-          if (lower.includes(kw)) {
-            score += 1.5;
-            matches.push(kw);
-          }
-        });
+    dropZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
 
-        if (score > highestScore) {
-          highestScore = score;
-          bestCategory = theme;
-          matchedKeywords = matches;
-        }
+    function handleFile(file) {
+      if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
+        alert('Please upload a valid .txt plain text file.');
+        return;
       }
 
-      return {
-        theme: bestCategory,
-        score: highestScore,
-        matchedKeywords: matchedKeywords.slice(0, 5)
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const text = event.target.result;
+        
+        // Populate view
+        textContent.textContent = text;
+        
+        // Metadata calculations
+        metaFileName.textContent = file.name;
+        metaFileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+        metaWordCount.textContent = words.toLocaleString();
+
+        // Reveal panels
+        fileDetails.style.display = 'flex';
+        viewerCard.style.display = 'block';
+        nextStepsBanner.style.display = 'block';
       };
+
+      reader.readAsText(file, 'UTF-8');
     }
 
-    function generateEssenceTitle(text, theme) {
-      const clean = text.replace(/[.,\/#!$%\^&\*
+    // Reset view
+    clearBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      textContent.textContent = '';
+      fileDetails.style.display = 'none';
+      viewerCard.style.display = 'none';
+      nextStepsBanner.style.display = 'none';
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(textContent.textContent).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = 'Copy Text', 2000);
+      });
+    });
+  </script>
+</body>
+</html>
